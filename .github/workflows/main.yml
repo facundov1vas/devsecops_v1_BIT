@@ -1,4 +1,5 @@
-name: "Security Analysis Pipeline"
+name: "CodeQL Analysis"
+
 on:
   push:
     branches: [ "main", "develop" ]
@@ -11,10 +12,12 @@ jobs:
   codeql_analysis:
     name: Analyze Code with CodeQL
     runs-on: ubuntu-latest
+
     permissions:
       security-events: write
       actions: read
       contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,12 +25,12 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: "javascript"  # Ajustado para Juice Shop (Node.js/JavaScript)
+          languages: "javascript" # Ajustado para Juice Shop (Node.js/JavaScript)
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          output: codeql-results.sarif
+          output: codeql-results.sarif  # Guardar en el directorio raíz con este nombre
 
       - name: Upload CodeQL results as an artifact
         uses: actions/upload-artifact@v4
@@ -53,6 +56,7 @@ jobs:
       DEFECTDOJO_ENGAGEMENT_PEN_TEST: "true"
       DEFECTDOJO_ENGAGEMENT_CHECK_LIST: "true"
       DEFECTDOJO_PRODUCTID: "1"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -70,12 +74,12 @@ jobs:
       - name: Create engagement in DefectDojo
         run: |
           ENGAGEMENTID=$(curl --fail --location --request POST "${DEFECTDOJO_URL}/api/v2/engagements/" \
-          --header "Authorization: Token ${DEFECTDOJO_TOKEN}" \
+          --header "Authorization: Token 86e6919d86581a9a856ebdad79978b4374dd3931" \
           --header "Content-Type: application/json" \
           --data-raw '{
-            "tags": ["GitHub Actions", "Juice Shop", "CodeQL"],
-            "name": "CodeQL_JuiceShop_#${{ github.run_id }}",
-            "description": "${{ github.event.head_commit.message || 'Análisis de seguridad en Juice Shop' }}", 
+            "tags": ["GitHub Actions"],
+            "name": "CodeQL_#${{ github.run_id }}",
+            "description": "${{ github.event.head_commit.message }}", 
             "version": "${{ github.ref }}",
             "first_contacted": "'"$TODAY"'",
             "target_start": "'"$TODAY"'",
@@ -94,7 +98,7 @@ jobs:
             "branch_tag": "${{ github.ref_name }}",
             "source_code_management_uri": "https://github.com/${{ github.repository }}",
             "deduplication_on_engagement": '${DEFECTDOJO_ENGAGEMENT_DEDUPLICATION_ON_ENGAGEMENT}',
-            "product": '${DEFECTDOJO_PRODUCTID}',
+            "product": 1,
             "build_server": '${DEFECTDOJO_ENGAGEMENT_BUILD_SERVER}',
             "source_code_management_server": '${DEFECTDOJO_ENGAGEMENT_SOURCE_CODE_MANAGEMENT_SERVER}',
             "orchestration_engine": '${DEFECTDOJO_ENGAGEMENT_ORCHESTRATION_ENGINE}'
@@ -106,7 +110,7 @@ jobs:
         with:
           name: defectdojo1-env
           path: defectdojo1.env
-  
+
   codeql_import_results:
     name: Publish CodeQL Scan in DefectDojo
     runs-on: ubuntu-latest
@@ -130,7 +134,7 @@ jobs:
       - name: Download CodeQL results artifact
         uses: actions/download-artifact@v4
         with:
-          name: codeql-results
+          name: codeql-results  # El nombre del artefacto que subiste
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y curl
@@ -151,8 +155,8 @@ jobs:
           -F "verified=${DEFECTDOJO_SCAN_VERIFIED}" \
           -F "scan_type=${DEFECTDOJO_SCAN_TEST_TYPE}" \
           -F "product_name=${DEFECTDOJO_PRODUCT_NAME}" \
-          -F "file=@codeql-results.sarif;type=application/sarif+json" \
-          -F "engagement_name=CodeQL_JuiceShop_#${{ github.run_id }}" \
+          -F "file=@python.sarif;type=application/sarif+json" \
+          -F "engagement_name=CodeQL_#${{ github.run_id }}" \
           -F "close_old_findings=${DEFECTDOJO_SCAN_CLOSE_OLD_FINDINGS}" \
           -F "push_to_jira=${DEFECTDOJO_SCAN_PUSH_TO_JIRA}"
 
@@ -160,15 +164,16 @@ jobs:
       name: Trivy Scan
       runs-on: ubuntu-20.04
       permissions:
-        security-events: write
+        security-events: write  # Add this line to ensure proper permissions
+
       steps:
         - name: Checkout code
           uses: actions/checkout@v4
 
-        - name: Build Juice Shop Docker image
+        - name: Build an image from Dockerfile
           run: |
-            cd juice.shop
-            docker build -t juiceshop-image .
+             cd juice.shop
+             docker build -t juiceshop-image .
 
         - name: Run Trivy vulnerability scanner
           uses: aquasecurity/trivy-action@0.28.0
@@ -177,21 +182,21 @@ jobs:
             format: 'sarif'
             output: 'trivy-results.sarif'
             exit-code: 0   # Evita fallos si se encuentran vulnerabilidades
-            severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
+            severity: 'HIGH,CRITICAL'
 
         - name: Upload Trivy scan results to GitHub Security tab
           uses: github/codeql-action/upload-sarif@v3
           with:
             sarif_file: 'trivy-results.sarif'
 
-        - name: Upload Trivy results as an artifact
+        - name: Upload CodeQL results as an artifact
           uses: actions/upload-artifact@v4
           with:
             name: trivy-results
             path: trivy-results.sarif
 
   trivy_create_engagement:
-    name: Create engagement in DefectDojo - Trivy
+    name: Create engagement in DefectDojo -Trivy
     needs: trivy_scan
     runs-on: ubuntu-latest
     env:
@@ -208,6 +213,7 @@ jobs:
       DEFECTDOJO_ENGAGEMENT_PEN_TEST: "true"
       DEFECTDOJO_ENGAGEMENT_CHECK_LIST: "true"
       DEFECTDOJO_PRODUCTID: "1"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -225,12 +231,12 @@ jobs:
       - name: Create engagement in DefectDojo
         run: |
           ENGAGEMENTID=$(curl --fail --location --request POST "${DEFECTDOJO_URL}/api/v2/engagements/" \
-          --header "Authorization: Token ${DEFECTDOJO_TOKEN}" \
+          --header "Authorization: Token 86e6919d86581a9a856ebdad79978b4374dd3931" \
           --header "Content-Type: application/json" \
           --data-raw '{
-            "tags": ["GitHub Actions", "Juice Shop", "Trivy"],
-            "name": "Trivy_JuiceShop_#${{ github.run_id }}",
-            "description": "${{ github.event.head_commit.message || 'Análisis de contenedor de Juice Shop' }}", 
+            "tags": ["GitHub Actions"],
+            "name": "Trivy_#${{ github.run_id }}",
+            "description": "${{ github.event.head_commit.message }}", 
             "version": "${{ github.ref }}",
             "first_contacted": "'"$TODAY"'",
             "target_start": "'"$TODAY"'",
@@ -249,7 +255,7 @@ jobs:
             "branch_tag": "${{ github.ref_name }}",
             "source_code_management_uri": "https://github.com/${{ github.repository }}",
             "deduplication_on_engagement": '${DEFECTDOJO_ENGAGEMENT_DEDUPLICATION_ON_ENGAGEMENT}',
-            "product": '${DEFECTDOJO_PRODUCTID}',
+            "product": 1,
             "build_server": '${DEFECTDOJO_ENGAGEMENT_BUILD_SERVER}',
             "source_code_management_server": '${DEFECTDOJO_ENGAGEMENT_SOURCE_CODE_MANAGEMENT_SERVER}',
             "orchestration_engine": '${DEFECTDOJO_ENGAGEMENT_ORCHESTRATION_ENGINE}'
@@ -285,7 +291,7 @@ jobs:
       - name: Download Trivy results artifact
         uses: actions/download-artifact@v4
         with:
-          name: trivy-results
+          name: trivy-results  # El nombre del artefacto que subiste
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y curl
@@ -307,6 +313,6 @@ jobs:
           -F "scan_type=${DEFECTDOJO_SCAN_TEST_TYPE}" \
           -F "product_name=${DEFECTDOJO_PRODUCT_NAME}" \
           -F "file=@trivy-results.sarif;type=application/sarif+json" \
-          -F "engagement_name=Trivy_JuiceShop_#${{ github.run_id }}" \
+          -F "engagement_name=Trivy_#${{ github.run_id }}" \
           -F "close_old_findings=${DEFECTDOJO_SCAN_CLOSE_OLD_FINDINGS}" \
           -F "push_to_jira=${DEFECTDOJO_SCAN_PUSH_TO_JIRA}"
