@@ -155,7 +155,7 @@ jobs:
           -F "verified=${DEFECTDOJO_SCAN_VERIFIED}" \
           -F "scan_type=${DEFECTDOJO_SCAN_TEST_TYPE}" \
           -F "product_name=${DEFECTDOJO_PRODUCT_NAME}" \
-          -F "file=@python.sarif;type=application/sarif+json" \
+          -F "file=@codeql-results.sarif;type=application/sarif+json" \
           -F "engagement_name=CodeQL_#${{ github.run_id }}" \
           -F "close_old_findings=${DEFECTDOJO_SCAN_CLOSE_OLD_FINDINGS}" \
           -F "push_to_jira=${DEFECTDOJO_SCAN_PUSH_TO_JIRA}"
