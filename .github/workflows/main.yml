@@ -172,7 +172,7 @@ jobs:
 
         - name: Build an image from Dockerfile
           run: |
-             cd juice.shop
+             cd juice-shop
              docker build -t juiceshop-image .
 
         - name: Run Trivy vulnerability scanner
